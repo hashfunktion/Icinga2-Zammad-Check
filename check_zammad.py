@@ -42,13 +42,21 @@ message = {
 def check(server, token):
 
     try:
-        zammad_data = requests.get(
-            server + "/api/v1/monitoring/health_check?token=" + token).text
-        zammad_data = json.loads(zammad_data)
+        response = requests.get(
+            f"{server}/api/v1/monitoring/health_check?token={token}")
+        
+        response.raise_for_status()
+
+        zammad_data = response.json()
         status = UNKNOWN
-    except:
+
+    except requests.exceptions.RequestException as e:
         status = WARNING
-        message['summary'] = 'Zammad Health information retrieval failed!'
+        message['summary'] = f"Zammad Health information retrieval failed! Error: {str(e)}"
+        return status
+    except json.JSONDecodeError:
+        status = WARNING
+        message['summary'] = "Failed to parse JSON response from Zammad!"
         return status
 
     health = zammad_data['healthy']
